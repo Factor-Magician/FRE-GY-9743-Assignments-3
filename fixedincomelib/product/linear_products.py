@@ -6,7 +6,7 @@ from typing import Optional
 import QuantLib as ql
 
 from fixedincomelib.date.basics import Date, TermOrDate
-from fixedincomelib.date.utilities import accrued
+from fixedincomelib.date.utilities import accrued, add_period
 from fixedincomelib.market.basics import (
     AccrualBasis, BusinessDayConvention, Currency, HolidayConvention,
 )
@@ -74,10 +74,32 @@ class ProductFixedAccruedCashflow(ProductCashflow):
         effective_date = _valid_date(effective_date, "effective_date")
         termination_date = _valid_date(termination_date, "termination_date")
         _check_accrual_dates(effective_date, termination_date)
-        #TODO 1: Initialize ProductCashflow and store the accrual fields.
-        # Default payment to termination, and conventions to F and USGS.
-        # Set first_date and compute the year fraction with accrued().
-        raise NotImplementedError("TODO 1: ProductFixedAccruedCashflow.__init__")
+        if not isinstance(accrual_basis, AccrualBasis):
+            raise TypeError("accrual_basis must be an AccrualBasis")
+        if business_day_convention is None:
+            business_day_convention = BusinessDayConvention("F")
+        if not isinstance(business_day_convention, BusinessDayConvention):
+            raise TypeError("business_day_convention must be a BusinessDayConvention")
+        if holiday_convention is None:
+            holiday_convention = HolidayConvention("USGS")
+        if not isinstance(holiday_convention, HolidayConvention):
+            raise TypeError("holiday_convention must be a HolidayConvention")
+
+        resolved_payment_date = termination_date if payment_date is None else payment_date
+        super().__init__(currency, notional, resolved_payment_date)
+        self.effective_date_ = effective_date
+        self.termination_date_ = termination_date
+        self.accrual_basis_ = accrual_basis
+        self.business_day_convention_ = business_day_convention
+        self.holiday_convention_ = holiday_convention
+        self.first_date_ = effective_date
+        self.accrued_ = accrued(
+            effective_date,
+            termination_date,
+            accrual_basis,
+            business_day_convention,
+            holiday_convention,
+        )
 
     @property
     def effective_date(self) -> Date:
@@ -104,8 +126,9 @@ class ProductFixedAccruedCashflow(ProductCashflow):
         return self.accrued_
 
     def accept(self, visitor: ProductVisitor):
-        #TODO 3: Dispatch this product to the visitor and return the result.
-        raise NotImplementedError("TODO 3: ProductFixedAccruedCashflow.accept")
+        if not isinstance(visitor, ProductVisitor):
+            raise TypeError("visitor must be a ProductVisitor")
+        return visitor.visit(self)
 
     def serialize(self) -> dict:
         return {
@@ -155,11 +178,34 @@ class ProductOvernightIndexCashflow(ProductCashflow):
             raise TypeError("compounding_method must be a CompoundingMethod")
         if not isfinite(spread):
             raise ValueError("spread must be finite")
-        #TODO 2: Get the index and resolve the termination date or tenor.
-        # Use the index calendar/convention and validate the end with the date helpers.
-        # Initialize ProductCashflow with index currency and payment defaulting to the end.
-        # Store the index key/object, effective/first date, end, compounding method and spread.
-        raise NotImplementedError("TODO 2: ProductOvernightIndexCashflow.__init__")
+        on_index_object = IndexRegistry().get(on_index)
+        on_index_key = on_index.upper()
+
+        if term_or_termination_date.is_term():
+            term = term_or_termination_date.get_term()
+            if term is None or not term.is_valid():
+                raise ValueError("term must be a valid period")
+            termination_date = add_period(
+                effective_date,
+                term,
+                on_index_object.businessDayConvention(),
+                on_index_object.fixingCalendar(),
+            )
+        else:
+            termination_date = _valid_date(
+                term_or_termination_date.get_date(), "termination_date"
+            )
+        _check_accrual_dates(effective_date, termination_date)
+
+        resolved_payment_date = termination_date if payment_date is None else payment_date
+        super().__init__(Currency(on_index_object.currency().code()), notional, resolved_payment_date)
+        self.on_index_str_ = on_index_key
+        self.on_index_ = on_index_object
+        self.effective_date_ = effective_date
+        self.termination_date_ = termination_date
+        self.compounding_method_ = compounding_method
+        self.spread_ = spread
+        self.first_date_ = effective_date
 
     @property
     def on_index(self) -> ql.OvernightIndex:
@@ -182,8 +228,9 @@ class ProductOvernightIndexCashflow(ProductCashflow):
         return self.spread_
 
     def accept(self, visitor: ProductVisitor):
-        #TODO 4: Dispatch this product to the visitor and return the result.
-        raise NotImplementedError("TODO 4: ProductOvernightIndexCashflow.accept")
+        if not isinstance(visitor, ProductVisitor):
+            raise TypeError("visitor must be a ProductVisitor")
+        return visitor.visit(self)
 
     def serialize(self) -> dict:
         return {

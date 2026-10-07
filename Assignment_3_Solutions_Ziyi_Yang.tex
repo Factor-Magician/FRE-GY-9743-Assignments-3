@@ -1,0 +1,365 @@
+% !TEX program = xelatex
+% Self-contained source. Compile with XeLaTeX twice.
+% Assignment 3 - Bond futures and cheapest-to-deliver analysis.
+\documentclass[11pt]{article}
+\usepackage[a4paper,top=1in,bottom=1in,left=1.1in,right=1.1in]{geometry}
+\usepackage{setspace}
+\setstretch{1.18}
+\setlength{\parindent}{1.5em}
+\setlength{\parskip}{2pt}
+\setlength{\emergencystretch}{1.5em}
+\usepackage{fontspec}
+\setmainfont{texgyreheros-regular.otf}[
+  BoldFont=texgyreheros-bold.otf,
+  ItalicFont=texgyreheros-italic.otf,
+  BoldItalicFont=texgyreheros-bolditalic.otf]
+\setsansfont{texgyreheros-regular.otf}[BoldFont=texgyreheros-bold.otf]
+\usepackage{amsmath,amssymb,booktabs,array,tabularx}
+\usepackage{enumitem,xcolor,colortbl,titlesec,fancyhdr}
+\usepackage{float,caption}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{NYUviolet}{HTML}{57068C}
+\definecolor{NYUviolet2}{HTML}{8900E1}
+\definecolor{inkgrey}{HTML}{3A3A3A}
+\definecolor{rulegrey}{HTML}{B9B9B9}
+\definecolor{tablehead}{HTML}{ECE3F4}
+\definecolor{lightviolet}{HTML}{F7F1FB}
+\definecolor{softred}{HTML}{FCEBEC}
+\definecolor{softgreen}{HTML}{EAF5EE}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=NYUviolet,
+  urlcolor=NYUviolet2,
+  citecolor=NYUviolet,
+  pdftitle={Assignment 3: Bond Futures and Cheapest-to-Deliver Analysis},
+  pdfauthor={Ziyi Yang}}
+
+\titleformat{\section}{\sffamily\Large\bfseries\color{NYUviolet}}
+  {\thesection}{0.7em}{}[\vspace{2pt}{\color{rulegrey}\titlerule[0.8pt]}]
+\titleformat{\subsection}{\sffamily\large\bfseries\color{inkgrey}}
+  {\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{16pt}{8pt}
+\titlespacing*{\subsection}{0pt}{10pt}{5pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{15pt}
+\renewcommand{\headrulewidth}{0.6pt}
+\fancyhead[L]{\footnotesize\sffamily\color{inkgrey}Bond Futures and CTD}
+\fancyhead[R]{\footnotesize\sffamily\color{inkgrey}FRE-GY-9743 -- Assignment 3}
+\fancyfoot[C]{\footnotesize\sffamily\color{inkgrey}\thepage}
+
+\setlist[itemize]{leftmargin=1.4em,itemsep=2pt,topsep=3pt,
+  label=\textcolor{NYUviolet}{\textbullet}}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=2pt,topsep=3pt}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\renewcommand{\arraystretch}{1.12}
+\newcommand{\keynote}[1]{\par\medskip\noindent\textbf{\sffamily\color{NYUviolet}Key result.}\enspace #1\par\medskip}
+\newcommand{\warningbox}[1]{\par\medskip\noindent\textit{\textbf{Modelling convention.}\enspace #1}\par\medskip}
+\newcommand{\focus}[1]{\noindent{\small\itshape\color{inkgrey}
+  \textbf{Question focus.} #1}\par\medskip}
+\newcommand{\AI}{\operatorname{AI}}
+\newcommand{\CTD}{\operatorname{CTD}}
+\numberwithin{equation}{section}
+\captionsetup{font=small,labelfont={bf,sf,color=NYUviolet},labelsep=period}
+
+\begin{document}
+\setlength{\abovedisplayskip}{7pt}
+\setlength{\belowdisplayskip}{7pt}
+\setlength{\abovedisplayshortskip}{3pt}
+\setlength{\belowdisplayshortskip}{4pt}
+\setlength{\jot}{2pt}
+\hypersetup{pageanchor=false}
+
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+\vspace*{0.55in}
+{\color{NYUviolet}\rule{\textwidth}{2.2pt}}\\[10pt]
+{\sffamily\fontsize{16}{19}\selectfont\color{inkgrey}
+Fixed Income Analysis Report}\\[14pt]
+{\sffamily\bfseries\fontsize{25}{30}\selectfont\color{NYUviolet}
+Bond Futures and the\\[3pt]Cheapest-to-Deliver Option}\\[14pt]
+{\sffamily\fontsize{15}{18}\selectfont\color{inkgrey}
+Forward Carry, Conversion Factors,\\[3pt]
+Implied Repo and Scenario Analysis}\\[10pt]
+{\color{NYUviolet}\rule{\textwidth}{2.2pt}}\\[28pt]
+
+\begin{minipage}{0.88\textwidth}
+\centering\itshape\small\color{inkgrey}
+This report solves the three written questions in Assignment 3. It prices the
+three-month forward on the specified Treasury, computes the exchange conversion
+factor and normalized forward price, recovers the implied repo rate from the
+quoted futures price, identifies the cheapest-to-deliver selection rule, and
+sets out a practical framework for forecasting CTD switches.
+\end{minipage}\\[34pt]
+
+\begin{tabular}{rl}
+\sffamily\bfseries Author & Ziyi Yang\\[3pt]
+\sffamily\bfseries Course & FRE-GY-9743\\[3pt]
+\sffamily\bfseries Source problem & Jianing (Jay) Yao, Assignment 3\\[3pt]
+ & September 28, 2026
+\end{tabular}
+
+\vfill
+{\sffamily\small\color{inkgrey}Assignment 3 \quad\textbullet\quad Bond Futures}\\[2pt]
+{\color{NYUviolet}\rule{\textwidth}{1.2pt}}
+\end{titlepage}
+\hypersetup{pageanchor=true}
+
+%========================================================
+% ABSTRACT, KEYWORDS AND CONTENTS
+%========================================================
+\begin{center}
+{\sffamily\large\bfseries\color{NYUviolet}Abstract}
+\end{center}
+\begin{quote}
+\small\itshape
+This report analyses the pricing and delivery economics of a Treasury bond
+futures contract. It derives the three-month forward value from cash-and-carry,
+converts the bond to the exchange's standard 6\% yield basis, and obtains the
+normalized forward price. It then recovers the implied repo rate from the
+quoted futures price and states the cheapest-to-deliver rule. Finally, it
+develops a scenario procedure for forecasting CTD switches as yields, coupon
+carry, accrued interest, financing conditions and time to delivery change.
+Price units, accrued-interest treatment and financing conventions are stated
+explicitly throughout.
+\end{quote}
+\vspace{4pt}
+{\small\noindent\textbf{\sffamily Keywords:}\;
+Bond futures \textbullet\; Conversion factor \textbullet\; Implied repo
+\textbullet\; Cheapest to deliver \textbullet\; Net basis}
+\vspace{8pt}
+{\color{rulegrey}\hrule}
+\setcounter{tocdepth}{1}
+\renewcommand{\contentsname}{\sffamily\large\bfseries\color{NYUviolet}Contents}
+{\small\tableofcontents}
+{\color{rulegrey}\hrule}
+\clearpage
+
+\section*{Notation and Modelling Conventions}
+\addcontentsline{toc}{section}{Notation and Modelling Conventions}
+
+All prices are per \$100 face amount. The bond pays a 4\% annual coupon in two
+equal installments, so each semiannual coupon is
+\[
+C=\frac{4}{2}=2.
+\]
+The statement that the bond has \emph{exactly} nine years remaining is taken to
+place the valuation date on a coupon date. Hence the spot accrued interest is
+zero. The delivery date is three months later, halfway through the next
+six-month coupon period, and no coupon is paid between valuation and delivery.
+The repo quote is treated as a simple annual rate with $T=3/12=0.25$.
+
+\begin{table}[H]
+\centering
+\caption{Inputs and price conventions}
+\small
+\begin{tabularx}{\textwidth}{@{}L{3.1cm}Y@{}}
+\toprule\rowcolor{tablehead}\textbf{Item} & \textbf{Value or convention}\\\midrule
+Spot clean price & $S_{0,\mathrm{clean}}=100$\\
+Spot accrued interest & $\AI_0=0$, so $S_{0,\mathrm{dirty}}=100$\\
+Coupon and frequency & 4\% annually; $C=2$ every six months\\
+Remaining maturity & 9 years, or 18 semiannual periods\\
+Forward tenor & $T=0.25$ year\\
+Market repo rate & $r_{\mathrm{mkt}}=2\%$ simple annual\\
+Conversion-factor yield & 6\% nominal, compounded semiannually\\
+Delivery accrued interest & $\AI_T=2(3/6)=1$\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\keynote{The accrued-interest adjustment is essential. The financed spot
+position grows to a dirty value of 100.50, while the comparable quoted forward
+price is clean and therefore equals 99.50.}
+
+\clearpage
+\section{Q1: Normalized forward price}
+\focus{Compute the three-month forward price, the conversion factor, and the
+normalized forward price; then explain what the conversion factor accomplishes.}
+
+\subsection{Three-month forward price}
+Because no coupon is paid before delivery, cash-and-carry gives the dirty
+delivery value
+\begin{equation}
+B^{\mathrm{dirty}}_F
+=S_{0,\mathrm{dirty}}(1+r_{\mathrm{mkt}}T)
+=100(1+0.02\times0.25)=100.50.
+\end{equation}
+At delivery, three months of the next semiannual coupon have accrued:
+\begin{equation}
+\AI_T=C\frac{3}{6}=2\times\frac12=1.00.
+\end{equation}
+The clean forward price used with the conversion factor is therefore
+\begin{equation}
+\boxed{B_F=B^{\mathrm{dirty}}_F-\AI_T=100.50-1.00=99.50.}
+\end{equation}
+
+\subsection{Conversion factor}
+At the exchange's 6\% standard yield, the semiannual yield is 3\%. With 18
+remaining coupon periods, the clean model price is
+\begin{align}
+P_{6\%}
+&=\sum_{i=1}^{18}\frac{2}{(1.03)^i}
+  +\frac{100}{(1.03)^{18}}\\
+&=86.2464869.
+\end{align}
+The conversion factor is this clean price divided by 100:
+\begin{equation}
+\boxed{K=\frac{86.2464869}{100}=0.8624648692.}
+\end{equation}
+
+\subsection{Normalized price and interpretation}
+The normalized forward price is
+\begin{equation}
+\boxed{\frac{B_F}{K}
+=\frac{99.50}{0.8624648692}
+=115.3670179\approx115.3670.}
+\end{equation}
+
+The conversion factor maps bonds with different coupons and maturities onto a
+common 6\% yield benchmark. A low-coupon bond such as this 4\% issue has
+$K<1$, so its clean delivery value is divided by a number below one. This
+normalization makes a basket deliverable against one futures contract, but it
+is not perfect: the actual yield curve, coupon carry, repo specialness and
+accrued interest differ across bonds. Those residual differences create the
+cheapest-to-deliver option. Accrued interest is excluded from both clean bond
+prices and the conversion factor and is added separately to the delivery
+invoice.
+
+\clearpage
+\section{Q2: Cheapest-to-deliver and implied repo}
+\focus{Use the quoted futures price to recover the bond's implied repo and state
+the economic rule for selecting the CTD bond.}
+
+\subsection{Implied repo for the specified bond}
+Let the quoted futures price be $F=115.3670$. The clean invoice component is
+$FK$ and the dirty amount received upon delivery is $FK+\AI_T$. Since there is
+no intervening coupon, the implied simple repo rate solves
+\begin{equation}
+S_{0,\mathrm{dirty}}(1+r_{\mathrm{imp}}T)=FK+\AI_T.
+\end{equation}
+Hence
+\begin{align}
+r_{\mathrm{imp}}
+&=\frac{1}{T}
+\left(\frac{FK+\AI_T}{S_{0,\mathrm{dirty}}}-1\right)\\
+&=\frac{1}{0.25}
+\left(\frac{115.3670(0.8624648692)+1}{100}-1\right)\\
+&=0.01999938.
+\end{align}
+Therefore
+\begin{equation}
+\boxed{r_{\mathrm{imp}}\approx1.99994\%\approx2.00\%.}
+\end{equation}
+The small difference from exactly 2\% is caused only by rounding the futures
+quote to four decimal places. This confirms the consistency between Questions
+1 and 2.
+
+\subsection{How to select the CTD bond}
+For each deliverable bond $x$, calculate its implied repo rate from the observed
+futures price, its conversion factor and all relevant carry cash flows. A trader
+can buy the bond, finance it in repo and deliver it into the short futures
+position. If its implied repo exceeds its actual financing rate, this trade has
+positive carry before costs.
+
+When all bonds can be financed near the same general-collateral rate, the CTD is
+the bond with the \textbf{highest implied repo rate}. Equivalently, it has the
+lowest normalized forward delivery cost:
+\begin{equation}
+\boxed{
+\CTD=\arg\min_{x\in\mathcal X}\frac{B_{F,x}}{K_x}
+=\arg\max_{x\in\mathcal X}r^{\mathrm{imp}}_x.}
+\end{equation}
+If individual bonds trade at different repo rates, especially when one is
+``special,'' the comparison should use financing-adjusted carry. In practice,
+the preferred bond maximizes the implied financing advantage
+$r^{\mathrm{imp}}_x-r^{\mathrm{actual}}_x$, or equivalently minimizes net basis
+after coupon, financing and transaction-cost adjustments.
+
+\keynote{For the bond in Question 1, the quoted futures price 115.3670
+produces an implied repo of approximately 2\%, exactly matching the assumed
+market repo rate. Its cash-and-carry trade is therefore at break-even before
+costs.}
+
+\clearpage
+\section{Q3: Scenario analysis and CTD switches}
+\focus{Predict which bond may become CTD at a future horizon and explain why the
+delivery choice matters.}
+
+\subsection{A reproducible scenario procedure}
+At a horizon $h=N/365$, the CTD forecast should be recomputed rather than held
+fixed. For every bond $x$ in the delivery basket:
+\begin{enumerate}
+\item Project its clean price $S_x(h)$ under the scenario yield curve. Roll the
+coupon schedule forward and compute the accrued interest at the horizon.
+\item Apply the scenario repo rate for that specific bond. Include coupons paid
+between $h$ and delivery and their reinvestment or financing treatment.
+\item Compute the scenario forward delivery price $B_{F,x}(h)$ and divide by the
+exchange-fixed conversion factor $K_x$.
+\item Select the minimum normalized forward price. As a cross-check, use the
+observed scenario futures price to compute implied repo for every bond and
+select the largest financing advantage over actual repo.
+\end{enumerate}
+
+Formally, the scenario CTD is
+\begin{equation}
+x^*(h)=\arg\min_{x\in\mathcal X}
+\frac{B_{F,x}\!\left(S_x(h),r_x(h),T_d-h\right)}{K_x}.
+\end{equation}
+
+\clearpage
+\subsection{What can cause a switch?}
+\begin{table}[H]
+\centering
+\caption{Main drivers of CTD changes}
+\small
+\begin{tabularx}{\textwidth}{@{}L{3.2cm}Y@{}}
+\toprule\rowcolor{tablehead}\textbf{Driver} & \textbf{Effect on the ranking}\\\midrule
+Yield level and curve shape & Bonds have different duration and convexity, so a parallel move or curve twist changes their clean prices by different amounts.\\
+Coupon carry and accrued interest & Coupon dates, accrued interest and reinvestment alter the cost of carrying each bond to delivery.\\
+Repo specialness & A bond that is expensive to borrow or unusually cheap to finance can move sharply in implied-repo and net-basis rankings.\\
+Passage of time & Remaining financing periods shorten and coupon entitlements change as the contract approaches delivery.\\
+Conversion-factor bias & Conversion factors are fixed from a 6\% benchmark and do not update with the actual yield curve, leaving residual relative-value exposure.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+CTD identity matters because the futures price is anchored by the cheapest
+delivery route. The CTD determines the relevant cash bond, conversion factor,
+duration and DV01 used in a hedge. A CTD switch can therefore change hedge
+ratios and produce basis P\&L even when the broad level of rates moves as
+expected. For a short futures position it also determines the bond that should
+be acquired and delivered; for a long position it describes the quality option
+granted to the short.
+
+\keynote{A CTD forecast is a relative-value calculation across the entire
+basket. Reprice every candidate under the same market scenario, include
+bond-specific financing, and choose the minimum normalized delivery cost rather
+than extrapolating today's CTD mechanically.}
+
+\clearpage
+\section*{Summary of the Three Answers}
+\addcontentsline{toc}{section}{Summary of the Three Answers}
+\begin{table}[H]
+\centering
+\caption{Numerical results and decision rules}
+\small
+\begin{tabularx}{\textwidth}{@{}L{3.4cm}Y@{}}
+\toprule\rowcolor{tablehead}\textbf{Quantity} & \textbf{Answer}\\\midrule
+Three-month dirty forward value & $100.5000$\\
+Delivery accrued interest & $1.0000$\\
+Clean forward price $B_F$ & $99.5000$\\
+Conversion factor $K$ & $0.8624648692$\\
+Normalized forward price $B_F/K$ & $115.3670179\approx115.3670$\\
+Implied repo at $F=115.3670$ & $1.99994\%\approx2.00\%$\\
+CTD rule under common GC financing & Highest implied repo, equivalently lowest normalized forward cost\\
+CTD rule with bond-specific repo & Highest financing-adjusted implied-repo advantage, equivalently lowest net basis\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\end{document}
